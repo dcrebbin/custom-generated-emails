@@ -23,7 +23,7 @@ export async function POST(req: Request) {
 
     const headers = new Headers();
     headers.set("Authorization", `Bearer ${process.env.PERPLEXITY_API_KEY}`);
-    headers.set("Content-Type", "application/json");
+    headers.set("Content-Type", 'application/json; charset=utf-8');
 
     try {
         const response = await req.json() as SearchRequest;
