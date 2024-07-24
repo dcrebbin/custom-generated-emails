@@ -17,19 +17,22 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const { query } = await req.json() as { query: string };
-  const optimisedSearchQuery = await openAiRequest(`Optimise this natural language query to show the best and latest results in a search engine. Only return the updated query. If the query contains more than 1 request then split it into multiple queries using semi-colons ;.`, query);
+  const optimisedSearchQuery = await openAiRequest(`Optimise this natural language query to show the best and latest results in a search engine. Only return the updated query. If the query contains more than 1 request then split it into multiple queries using semi-colons ;. Query: ${query}`);
   const splitQueries = optimisedSearchQuery.split(";");
   const results = [];
   for (const query of splitQueries) {
     const retrievedWebSearch = await search(query.replace(/^\s+|\s+$/g, ""));
-    const openAiRequestData = await openAiRequest(`Find the most relevent information todo with this query ${query} and: ${PROMPT_RULES}.`, JSON.stringify(retrievedWebSearch));
+    const openAiRequestData = await openAiRequest(`Find the most relevent information todo with this query: ${query} and: ${PROMPT_RULES}. Using this data: ${JSON.stringify(retrievedWebSearch)}. Only return the relevent information`);
     results.push(openAiRequestData);
   }
+  const finalData = await openAiRequest(`Convert this data into well formatted markdown that includes all elements (headers, bold, italic, links, lists, paragraphs, etc):
 
-  const finalData = await openAiRequest('You are a markdown expert. Convert this data to markdown. Only return the markdown. Do not include any other text or code marks i.e: ```.', JSON.stringify(results));
+  Data:${JSON.stringify(results)}
+
+  Ensure that all sections are appropriately titled, and lists are properly formatted. ONLY return the markdown. Do not include any other text or code marks i.e: \`\`\` or \`\`\`.`);
   console.log(finalData);
 
-  return new Response(JSON.stringify(finalData), {
+  return new Response(finalData, {
     status: 200,
   });
 }
@@ -83,10 +86,8 @@ function parseData(data: string): SearchResult[] {
   }
 }
 
-
-async function openAiRequest(input: string, prompt: string): Promise<string> {
+async function openAiRequest(prompt: string, model = "gpt-4o-mini"): Promise<string> {
   const completionsEndpoint = "https://api.openai.com/v1/chat/completions";
-  const model = "gpt-4o-mini";
 
   const response = await fetch(completionsEndpoint, {
     method: "POST",
@@ -95,9 +96,9 @@ async function openAiRequest(input: string, prompt: string): Promise<string> {
       messages: [
         {
           role: "system",
-          content: prompt,
+          content: '',
         },
-        { role: "user", content: input },
+        { role: "user", content: prompt },
       ],
     }),
     headers: {
