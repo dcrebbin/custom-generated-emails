@@ -33,8 +33,7 @@ export async function POST(req: Request) {
     }
 
     const nodeMailer = nodemailer as NodeMailer;
-    const html = convertMarkdownToHtml(text);
-
+    const html = markdownToHtml(text);
     const transporter: any = nodeMailer.createTransport({
         service: "Gmail",
         host: "smtp.gmail.com",
@@ -68,32 +67,27 @@ export async function POST(req: Request) {
             status: 500,
         });
     }
-
 }
 
-function convertMarkdownToHtml(markdown: string) {
-    // Convert headers
-    markdown = markdown.replace(/^# (.*$)/gm, '<h1>$1</h1>');
-    markdown = markdown.replace(/^## (.*$)/gm, '<h2>$1</h2>');
-    markdown = markdown.replace(/^### (.*$)/gm, '<h3>$1</h3>');
+function markdownToHtml(markdown: string) {
+    markdown = markdown.replace(/^### (.*)$/gim, '<h3>$1</h3>');
+    markdown = markdown.replace(/^## (.*)$/gim, '<h2>$1</h2>');
+    markdown = markdown.replace(/^# (.*)$/gim, '<h1>$1</h1>');
 
-    // Convert bold and italic
-    markdown = markdown.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    markdown = markdown.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Convert bold text
+    markdown = markdown.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
 
     // Convert links
-    markdown = markdown.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+    markdown = markdown.replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2">$1</a>');
 
     // Convert unordered lists
-    markdown = markdown.replace(/^\* (.*$)/gm, '<ul>\n<li>$1</li>\n</ul>');
-    markdown = markdown.replace(/<\/ul>\n<ul>/g, '');
+    markdown = markdown.replace(/^\s*-\s+(.*)$/gim, '<ul><li>$1</li></ul>');
+    markdown = markdown.replace(/<\/ul>\s*<ul>/gim, '');
 
-    // Convert ordered lists
-    markdown = markdown.replace(/^\d+\. (.*$)/gm, '<ol>\n<li>$1</li>\n</ol>');
-    markdown = markdown.replace(/<\/ol>\n<ol>/g, '');
+    // Remove any remaining ##
+    markdown = markdown.replace(/## /gim, '<h3>');
 
-    // Convert paragraphs
-    markdown = markdown.replace(/^(?!<[uo]l|<h)\s*([^\n]+)/gm, '<p>$1</p>');
+    // Convert line breaks
 
-    return markdown;
+    return markdown.trim();
 }
