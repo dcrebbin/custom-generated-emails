@@ -6,6 +6,8 @@
 
 ![example-1](/public/example-1.png)
 
+The email is generated from your topic via open ai and bing search retrieval or perplexity and sent to your inbox when the schedule is met.
+
 ![example-2](/public/example-2.png)
 
 ## Setup 
