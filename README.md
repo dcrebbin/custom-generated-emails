@@ -12,7 +12,7 @@
 
 1) pnpm/npm/bun/yarn i
 
-2) create a .env file from .env.example
+2) create a .env file from .env.example (USE_OPEN_AI will determine if you use open ai & bing or perplexity to enable search retrieval)
 
 3) connect your project to vercel
 
