@@ -16,10 +16,20 @@ export async function POST(req: Request): Promise<Response> {
     });
   }
 
-  const query = await req.json() as string;
-  const retrievedWebSearch = await search(query);
-  const llmData = await llm(retrievedWebSearch);
-  return new Response(JSON.stringify(llmData), {
+  const { query } = await req.json() as { query: string };
+  const optimisedSearchQuery = await openAiRequest(`Optimise this natural language query to show the best and latest results in a search engine. Only return the updated query. If the query contains more than 1 request then split it into multiple queries using semi-colons ;.`, query);
+  const splitQueries = optimisedSearchQuery.split(";");
+  const results = [];
+  for (const query of splitQueries) {
+    const retrievedWebSearch = await search(query.replace(/^\s+|\s+$/g, ""));
+    const openAiRequestData = await openAiRequest(`Find the most relevent information todo with this query ${query} and: ${PROMPT_RULES}.`, JSON.stringify(retrievedWebSearch));
+    results.push(openAiRequestData);
+  }
+
+  const finalData = await openAiRequest('You are a markdown expert. Convert this data to markdown. Only return the markdown. Do not include any other text or code marks i.e: ```.', JSON.stringify(results));
+  console.log(finalData);
+
+  return new Response(JSON.stringify(finalData), {
     status: 200,
   });
 }
@@ -40,7 +50,7 @@ async function search(query: string): Promise<SearchResult[]> {
   const headers = new Headers();
   headers.set("Ocp-Apim-Subscription-Key", process.env.BING_API_KEY!);
 
-  const searchResponse = await fetch(`${searchEndpoint}${query}${PROMPT_RULES}`, {
+  const searchResponse = await fetch(`${searchEndpoint}${query}`, {
     headers: headers,
   });
 
@@ -61,8 +71,7 @@ async function search(query: string): Promise<SearchResult[]> {
     deepLinks: data.deepLinks,
   }));
 
-  const llmData = await llm(transformedData);
-  return parseData(llmData);
+  return parseData(JSON.stringify(transformedData));
 }
 
 function parseData(data: string): SearchResult[] {
@@ -74,9 +83,11 @@ function parseData(data: string): SearchResult[] {
   }
 }
 
-async function llm(searchResponse: unknown): Promise<string> {
+
+async function openAiRequest(input: string, prompt: string): Promise<string> {
   const completionsEndpoint = "https://api.openai.com/v1/chat/completions";
   const model = "gpt-4o-mini";
+
   const response = await fetch(completionsEndpoint, {
     method: "POST",
     body: JSON.stringify({
@@ -86,11 +97,11 @@ async function llm(searchResponse: unknown): Promise<string> {
           role: "system",
           content: prompt,
         },
-        { role: "user", content: JSON.stringify(searchResponse) },
+        { role: "user", content: input },
       ],
     }),
     headers: {
-      Authorization: `Bearer ${process.env.OPEN_AI_API_KEY}`,
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       "Content-Type": "application/json",
     },
   });
