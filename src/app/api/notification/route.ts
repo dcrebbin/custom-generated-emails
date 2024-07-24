@@ -21,8 +21,7 @@ export async function GET(request: Request) {
     });
 }
 
-async function sendCustomEmail(query: string, email: string, subject: string) {
-
+async function perplexity(query: string) {
     const perplexity = await fetch(`${process.env.SERVER_URL}/api/perplexity`, {
         method: "POST",
         headers: {
@@ -33,7 +32,26 @@ async function sendCustomEmail(query: string, email: string, subject: string) {
             query: query,
         }),
     });
-    const perplexityData = await perplexity.text();
+    return perplexity;
+}
+
+async function openAi(query: string) {
+    const res = await fetch(`${process.env.SERVER_URL}/api/open-ai`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.SERVER_PASSWORD}`,
+        },
+        body: JSON.stringify({
+            query: query,
+        }),
+    });
+    return res;
+}
+
+async function sendCustomEmail(query: string, email: string, subject: string) {
+    const res = process.env.USE_OPEN_AI == "true" ? await openAi(query) : await perplexity(query);
+    const data = await res.text();
     const emailSent = await fetch(`${process.env.SERVER_URL}/api/email`, {
         method: "POST",
         headers: {
@@ -43,12 +61,12 @@ async function sendCustomEmail(query: string, email: string, subject: string) {
         body: JSON.stringify({
             email: email,
             subject: subject,
-            text: perplexityData,
+            text: data,
         }),
     });
     const emailSentData = await emailSent.text();
     console.log(emailSentData);
-    return new Response(emailSentData, {
+    return new Response(data, {
         status: 200,
     });
 }
