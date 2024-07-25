@@ -5,16 +5,33 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { CUSTOM_EMAILS } from "~/app/constants/config";
 import { inngest } from "~/innjest/client";
-import { openAi } from "../open-ai/functions";
 
 export const helloWorld = inngest.createFunction(
     { id: "hello-world" },
     { event: "test/hello.world" },
     async ({ event, step }) => {
-        await step.sleep("wait-a-moment", "1s");
-        return { event, body: "Hello, World!" };
+        let response = await step.run("hello-world", async () => {
+            return (await fakeFetch()).body;
+        });
+
+        response += await step.run("hello-world", async () => {
+            return (await fakeFetch()).body;
+        });
+
+        response += await step.run("hello-world", async () => {
+            return (await fakeFetch()).body;
+        });
+        return { event, body: response };
     },
 );
+
+const fakeFetch = async () => {
+    await new Promise(resolve => setTimeout(resolve, 20000));
+    return {
+        status: 200,
+        body: "Hello, World!",
+    };
+}
 
 export const notification = inngest.createFunction(
     { id: "notification" },
