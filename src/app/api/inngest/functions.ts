@@ -12,7 +12,7 @@ export const helloWorld = inngest.createFunction(
 
 export const notification = inngest.createFunction(
     { id: "notification" },
-    { event: "notification" },
+    { event: "notification/send-custom-emails`" },
     async ({ event, step }) => {
         console.log("Notification Starting");
         for (const customEmail of CUSTOM_EMAILS) {
