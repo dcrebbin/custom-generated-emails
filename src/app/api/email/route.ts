@@ -24,6 +24,7 @@ export async function POST(req: Request) {
         });
     }
 
+
     const { email, subject, text } = await req.json() as Email;
 
     if (!email || !subject || !text) {

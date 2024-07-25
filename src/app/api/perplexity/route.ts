@@ -14,7 +14,7 @@ interface PerplexityResponse {
 
 export async function POST(req: Request) {
     const authHeader = req.headers.get("x-api-key");
-    if (authHeader !== `${process.env.PERPLEXITY_API_KEY}`) {
+    if (authHeader !== `${process.env.SERVER_PASSWORD}`) {
         console.error("Unauthorized");
         return new Response("Unauthorized", {
             status: 401,

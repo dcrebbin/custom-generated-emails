@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
             status: 401,
         });
     }
+    console.log("Authorized");
 
     for (const customEmail of CUSTOM_EMAILS) {
         const today = new Date();
@@ -29,7 +30,7 @@ async function perplexity(query: string) {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "x-api-key": `${process.env.PERPLEXITY_API_KEY}`,
+            "x-api-key": `${process.env.SERVER_PASSWORD}`,
         },
         body: JSON.stringify({
             query: query,
@@ -45,7 +46,7 @@ async function openAi(query: string) {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "x-api-key": `${process.env.OPENAI_API_KEY}`,
+            "x-api-key": `${process.env.SERVER_PASSWORD}`,
         },
         body: JSON.stringify({
             query: query,
@@ -63,7 +64,7 @@ async function sendCustomEmail(query: string, email: string, subject: string) {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "x-api-key": `${process.env.OPENAI_API_KEY}`,
+            "x-api-key": `${process.env.SERVER_PASSWORD}`,
         },
         body: JSON.stringify({
             email: email,
