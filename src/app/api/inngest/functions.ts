@@ -8,7 +8,7 @@ import { inngest } from "~/innjest/client";
 
 const fakeFetch = inngest.createFunction(
     { id: "fake-fetch" },
-    { event: "fake-fetch" },
+    { event: "fake/fetch" },
     async () => {
         await new Promise(resolve => setTimeout(resolve, 20000));
         return { result: "Hello, World!" }; // Result typed as { result: number }
