@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -22,18 +24,39 @@ export const notification = inngest.createFunction(
             const today = new Date();
             const dayOfWeek = today.getDay();
             if (customEmail.schedule[dayOfWeek] === 1) {
-                await step.run("send-custom-email", async () => {
-                    await sendCustomEmail(customEmail.topic, customEmail.sendTo, customEmail.subject, step);
+
+                const aiData = await step.run("open-ai/query", async () => {
+                    return process.env.USE_OPEN_AI ? await openAi(customEmail.topic) : await perplexity(customEmail.topic);
                 });
+
+                const emailData = await step.run("send-custom-email", async () => {
+                    return await sendEmail(customEmail.sendTo, customEmail.subject, aiData);
+                });
+                console.log(emailData);
             }
         }
-        console.log("Notification Ending");
         return { event, body: "Notification Ended" };
     },
 );
 
+async function sendEmail(email: string, subject: string, data: string): Promise<string> {
+    const emailSent = await fetch(`${process.env.SERVER_URL}/api/email`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "x-api-key": `${process.env.SERVER_PASSWORD}`,
+        },
+        body: JSON.stringify({
+            email: email,
+            subject: subject,
+            text: data,
+        }),
+    });
+    return await emailSent.text();
+}
 
-async function perplexity(query: string) {
+
+async function perplexity(query: string): Promise<string> {
     console.log("Perplexity Request Starting");
     const perplexity = await fetch(`${process.env.SERVER_URL}/api/perplexity`, {
         method: "POST",
@@ -46,7 +69,7 @@ async function perplexity(query: string) {
         }),
     });
     console.log("Perplexity Request Ending");
-    return perplexity;
+    return await perplexity.text();
 }
 
 async function openAi(query: string) {
@@ -62,36 +85,6 @@ async function openAi(query: string) {
         }),
     });
     console.log("OpenAI Request Ending");
-    return res;
+    return await res.text();
 }
 
-async function sendCustomEmail(query: string, email: string, subject: string, step: any) {
-    console.log("Send Custom Email Starting");
-    let data = "";
-
-    await step.run("ai-process-request", async () => {
-        const res = process.env.USE_OPEN_AI == "true" ? await openAi(query) : await perplexity(query);
-        data = await res.text();
-    });
-    let emailSentData = null;
-    await step.run("send-email", async () => {
-        const emailSent = await fetch(`${process.env.SERVER_URL}/api/email`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-api-key": `${process.env.SERVER_PASSWORD}`,
-            },
-            body: JSON.stringify({
-                email: email,
-                subject: subject,
-                text: data,
-            }),
-        });
-        emailSentData = await emailSent.text();
-    });
-    console.log("Send Custom Email Ending");
-    console.log(emailSentData);
-    return new Response(data, {
-        status: 200,
-    });
-}
