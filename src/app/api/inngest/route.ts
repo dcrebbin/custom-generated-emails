@@ -1,6 +1,7 @@
 import { serve } from "inngest/next";
 import { inngest } from "~/innjest/client";
 import { helloWorld, notification } from "./functions";
+import { openAi } from "../open-ai/functions";
 
 // Create an API that serves zero functions
 export const { GET, POST, PUT } = serve({
@@ -10,5 +11,6 @@ export const { GET, POST, PUT } = serve({
     functions: [
         helloWorld,
         notification,
+        openAi
     ],
 });

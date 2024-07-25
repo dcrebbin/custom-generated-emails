@@ -5,6 +5,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { CUSTOM_EMAILS } from "~/app/constants/config";
 import { inngest } from "~/innjest/client";
+import { openAi } from "../open-ai/functions";
 
 export const helloWorld = inngest.createFunction(
     { id: "hello-world" },
@@ -24,13 +25,16 @@ export const notification = inngest.createFunction(
             const today = new Date();
             const dayOfWeek = today.getDay();
             if (customEmail.schedule[dayOfWeek] === 1) {
-
                 const aiData = await step.run("open-ai/query", async () => {
-                    return process.env.USE_OPEN_AI ? await openAi(customEmail.topic) : await perplexity(customEmail.topic);
+                    return await step.waitForEvent("open-ai/query", {
+                        event: "open-ai/query",
+                        timeout: "10m",
+                        match: "data.userId"
+                    });
                 });
 
                 const emailData = await step.run("send-custom-email", async () => {
-                    return await sendEmail(customEmail.sendTo, customEmail.subject, aiData);
+                    return await sendEmail(customEmail.sendTo, customEmail.subject, aiData as unknown as string);
                 });
                 console.log(emailData);
             }
@@ -70,21 +74,5 @@ async function perplexity(query: string): Promise<string> {
     });
     console.log("Perplexity Request Ending");
     return await perplexity.text();
-}
-
-async function openAi(query: string) {
-    console.log("OpenAI Request Starting");
-    const res = await fetch(`${process.env.SERVER_URL}/api/open-ai`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "x-api-key": `${process.env.SERVER_PASSWORD}`,
-        },
-        body: JSON.stringify({
-            query: query,
-        }),
-    });
-    console.log("OpenAI Request Ending");
-    return await res.text();
 }
 

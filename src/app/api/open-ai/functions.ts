@@ -1,4 +1,5 @@
 import { PROMPT_RULES } from "~/app/constants/config";
+import { inngest } from "~/innjest/client";
 
 interface SearchResult {
   name: string;
@@ -7,35 +8,38 @@ interface SearchResult {
   deepLinks?: unknown;
 }
 
-export async function POST(req: Request): Promise<Response> {
-  const authHeader = req.headers.get("x-api-key");
-  if (authHeader !== `${process.env.SERVER_PASSWORD}`) {
-    console.error("Unauthorized");
-    return new Response("Unauthorized", {
-      status: 401,
+export const openAi = inngest.createFunction(
+  { id: "open-ai" },
+  { event: "open-ai/query" },
+  async ({ event, step }) => {
+    console.log("Notification Starting");
+
+    const { query } = event.data as { query: string };
+    const optimisedSearchQuery = await step.run("optimise-query", async () => {
+      return await openAiRequest(`Optimise this natural language query to show the best and latest results in a search engine. Only return the updated query. If the query contains more than 1 request then split it into multiple queries using semi-colons ;. Query: ${query}`);
     });
-  }
+    const splitQueries = optimisedSearchQuery.split(";");
+    const results: string[] = [];
+    for (const query of splitQueries) {
+      const retrievedWebSearch = await step.run("search", async () => {
+        return await search(query.replace(/^\s+|\s+$/g, ""));
+      });
+      const openAiRequestData = await step.run("open-ai-request", async () => {
+        return await openAiRequest(`Find the most relevent information todo with this query: ${query} and: ${PROMPT_RULES}. Using this data: ${JSON.stringify(retrievedWebSearch)}. Only return the relevent information`);
+      });
+      results.push(openAiRequestData);
+    }
+    const finalData = await step.run("final-data", async () => {
+      return await openAiRequest(`Convert this data into well formatted markdown that includes all elements (headers, bold, italic, links, lists, paragraphs, etc):
+  
+    Data:${JSON.stringify(results)}
+  
+    Ensure that all sections are appropriately titled, and lists are properly formatted. ONLY return the markdown. Do not include any other text or code marks i.e: \`\`\` or \`\`\`.`);
+    });
+    console.log(finalData);
+    return { event, body: finalData };
+  })
 
-  const { query } = await req.json() as { query: string };
-  const optimisedSearchQuery = await openAiRequest(`Optimise this natural language query to show the best and latest results in a search engine. Only return the updated query. If the query contains more than 1 request then split it into multiple queries using semi-colons ;. Query: ${query}`);
-  const splitQueries = optimisedSearchQuery.split(";");
-  const results = [];
-  for (const query of splitQueries) {
-    const retrievedWebSearch = await search(query.replace(/^\s+|\s+$/g, ""));
-    const openAiRequestData = await openAiRequest(`Find the most relevent information todo with this query: ${query} and: ${PROMPT_RULES}. Using this data: ${JSON.stringify(retrievedWebSearch)}. Only return the relevent information`);
-    results.push(openAiRequestData);
-  }
-  const finalData = await openAiRequest(`Convert this data into well formatted markdown that includes all elements (headers, bold, italic, links, lists, paragraphs, etc):
-
-  Data:${JSON.stringify(results)}
-
-  Ensure that all sections are appropriately titled, and lists are properly formatted. ONLY return the markdown. Do not include any other text or code marks i.e: \`\`\` or \`\`\`.`);
-  console.log(finalData);
-
-  return new Response(finalData, {
-    status: 200,
-  });
-}
 
 interface BingSearchResponse {
   webPages: {
