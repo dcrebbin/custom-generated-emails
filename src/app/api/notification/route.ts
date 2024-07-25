@@ -2,10 +2,13 @@ import { type NextRequest } from "next/server";
 import { CUSTOM_EMAILS } from "~/app/constants/config";
 
 export async function GET(request: NextRequest) {
-    const authHeader = request.headers.get("authorization");
+    const authHeader = request.headers.get('authorization');
+
+    console.log("Auth header", authHeader);
+
+    console.log("CRON_SECRET", process.env.CRON_SECRET);
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        console.error("Unauthorized");
-        return new Response("Unauthorized", {
+        return new Response('Unauthorized', {
             status: 401,
         });
     }
