@@ -2,7 +2,7 @@ import { type NextRequest } from "next/server";
 import { CUSTOM_EMAILS } from "~/app/constants/config";
 
 export async function GET(request: NextRequest) {
-    const authHeader = request.headers.get('authorization');
+    const authHeader = request.headers.get('Authorization');
 
     console.log("Auth header", authHeader);
 
