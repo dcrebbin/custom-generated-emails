@@ -10,28 +10,36 @@ export const helloWorld = inngest.createFunction(
     { id: "hello-world" },
     { event: "test/hello.world" },
     async ({ event, step }) => {
-        let response = await step.run("hello-world", async () => {
-            return (await fakeFetch()).body;
-        });
+        let response = (await step.invoke("fake-fetch", {
+            function: fakeFetch,
+        })).result;
 
-        response += await step.run("hello-world", async () => {
-            return (await fakeFetch()).body;
-        });
+        response += (await step.invoke("fake-fetch", {
+            function: fakeFetch,
+        })).result;
 
-        response += await step.run("hello-world", async () => {
-            return (await fakeFetch()).body;
-        });
+        response += (await step.invoke("fake-fetch", {
+            function: fakeFetch,
+        })).result;
+
+        response += (await step.invoke("fake-fetch", {
+            function: fakeFetch,
+        })).result;
+
         return { event, body: response };
     },
 );
 
-const fakeFetch = async () => {
-    await new Promise(resolve => setTimeout(resolve, 20000));
-    return {
-        status: 200,
-        body: "Hello, World!",
-    };
-}
+const fakeFetch = inngest.createFunction(
+    { id: "fake-fetch" },
+    { event: "fake-fetch" },
+    async () => {
+        await new Promise(resolve => setTimeout(resolve, 20000));
+        return { result: "Hello, World!" }; // Result typed as { result: number }
+    }
+);
+
+
 
 export const notification = inngest.createFunction(
     { id: "notification" },
