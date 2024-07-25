@@ -3,10 +3,8 @@ import { CUSTOM_EMAILS } from "~/app/constants/config";
 
 export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('Authorization');
+    console.log("All headers:", Object.fromEntries(request.headers));
 
-    console.log("Auth header", authHeader);
-
-    console.log("CRON_SECRET", process.env.CRON_SECRET);
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
         return new Response('Unauthorized', {
             status: 401,
