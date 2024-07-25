@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
         const today = new Date();
         const dayOfWeek = today.getDay();
         if (customEmail.schedule[dayOfWeek] === 1) {
-            sendCustomEmail(customEmail.topic, customEmail.sendTo, customEmail.subject);
+            void sendCustomEmail(customEmail.topic, customEmail.sendTo, customEmail.subject);
         }
     }
     return new Response("OK", {
