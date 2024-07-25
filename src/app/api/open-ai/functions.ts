@@ -80,7 +80,7 @@ async function search(query: string): Promise<unknown> {
   if (!searchResponse.ok) {
     throw new Error(`HTTP error! status: ${searchResponse.status}`);
   }
-  return searchResponse.json() as unknown as BingSearchResponse;
+  return searchResponse;
 }
 
 async function parseSearchResponse(searchResponse: any): Promise<SearchResult[]> {
@@ -133,7 +133,7 @@ async function openAiRequest(prompt: string, model = "gpt-4o-mini"): Promise<any
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
-  return response.json() as unknown as OpenAiResponse;
+  return response;
 }
 
 async function parseOpenAiResponse(response: any): Promise<any> {
