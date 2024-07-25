@@ -6,6 +6,15 @@
 import { CUSTOM_EMAILS } from "~/app/constants/config";
 import { inngest } from "~/innjest/client";
 
+const fakeFetch = inngest.createFunction(
+    { id: "fake-fetch" },
+    { event: "fake-fetch" },
+    async () => {
+        await new Promise(resolve => setTimeout(resolve, 20000));
+        return { result: "Hello, World!" }; // Result typed as { result: number }
+    }
+);
+
 export const helloWorld = inngest.createFunction(
     { id: "hello-world" },
     { event: "test/hello.world" },
@@ -28,15 +37,6 @@ export const helloWorld = inngest.createFunction(
 
         return { event, body: response };
     },
-);
-
-const fakeFetch = inngest.createFunction(
-    { id: "fake-fetch" },
-    { event: "fake-fetch" },
-    async () => {
-        await new Promise(resolve => setTimeout(resolve, 20000));
-        return { result: "Hello, World!" }; // Result typed as { result: number }
-    }
 );
 
 
