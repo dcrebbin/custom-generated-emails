@@ -21,8 +21,11 @@ export const openAi = inngest.createFunction(
     console.log("Notification Starting");
 
     const { query } = event.data as { query: string };
-    const optimisedSearchQuery = await step.run("optimise-query", async () => {
+    const optimisedSearchQueryResponse = await step.run("optimise-query", async () => {
       return await openAiRequest(`Optimise this natural language query to show the best and latest results in a search engine. Only return the updated query. If the query contains more than 1 request then split it into multiple queries using semi-colons ;. Query: ${query}`);
+    });
+    const optimisedSearchQuery = await step.run("parse-optimised-query", async () => {
+      return await parseOpenAiResponse(optimisedSearchQueryResponse);
     });
     const splitQueries = optimisedSearchQuery.split(";");
     const results: string[] = [];
