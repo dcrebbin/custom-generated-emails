@@ -2,7 +2,7 @@ import { type NextRequest } from "next/server";
 import { CUSTOM_EMAILS } from "~/app/constants/config";
 
 export async function GET(request: NextRequest) {
-    const authHeader = request.headers.get('Authorization');
+    const authHeader = request.headers.get('authorization');
     console.log("All headers:", Object.fromEntries(request.headers));
 
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
