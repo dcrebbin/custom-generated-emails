@@ -1,3 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { PROMPT_RULES } from "~/app/constants/config";
 import { inngest } from "~/innjest/client";
 
@@ -24,10 +30,17 @@ export const openAi = inngest.createFunction(
       const retrievedWebSearch = await step.run("search", async () => {
         return await search(query.replace(/^\s+|\s+$/g, ""));
       });
-      const openAiRequestData = await step.run("open-ai-request", async () => {
-        return await openAiRequest(`Find the most relevent information todo with this query: ${query} and: ${PROMPT_RULES}. Using this data: ${JSON.stringify(retrievedWebSearch)}. Only return the relevent information`);
+      const parsedWebSearch = await step.run("parse-web-search", async () => {
+        return await parseSearchResponse(retrievedWebSearch);
       });
-      results.push(openAiRequestData);
+      const openAiResponse = await step.run("open-ai-request", async () => {
+        return await openAiRequest(`Find the most relevent information todo with this query: ${query} and: ${PROMPT_RULES}. Using this data: ${JSON.stringify(parsedWebSearch)}. Only return the relevent information`);
+      });
+      const parsedOpenAiResponse = await step.run("parse-open-ai-response", async () => {
+        return await parseOpenAiResponse(openAiResponse);
+      });
+
+      results.push(parsedOpenAiResponse as string);
     }
     const finalData = await step.run("final-data", async () => {
       return await openAiRequest(`Convert this data into well formatted markdown that includes all elements (headers, bold, italic, links, lists, paragraphs, etc):
@@ -52,7 +65,7 @@ interface BingSearchResponse {
   };
 }
 
-async function search(query: string): Promise<SearchResult[]> {
+async function search(query: string): Promise<unknown> {
   const searchEndpoint = "https://api.bing.microsoft.com/v7.0/search?q=";
   const headers = new Headers();
   headers.set("Ocp-Apim-Subscription-Key", process.env.BING_API_KEY!);
@@ -64,7 +77,10 @@ async function search(query: string): Promise<SearchResult[]> {
   if (!searchResponse.ok) {
     throw new Error(`HTTP error! status: ${searchResponse.status}`);
   }
+  return searchResponse.json() as unknown as BingSearchResponse;
+}
 
+async function parseSearchResponse(searchResponse: any): Promise<SearchResult[]> {
   const searchData = await searchResponse.json() as BingSearchResponse;
 
   if (!searchData.webPages?.value) {
@@ -90,7 +106,7 @@ function parseData(data: string): SearchResult[] {
   }
 }
 
-async function openAiRequest(prompt: string, model = "gpt-4o-mini"): Promise<string> {
+async function openAiRequest(prompt: string, model = "gpt-4o-mini"): Promise<any> {
   const completionsEndpoint = "https://api.openai.com/v1/chat/completions";
 
   const response = await fetch(completionsEndpoint, {
@@ -114,6 +130,10 @@ async function openAiRequest(prompt: string, model = "gpt-4o-mini"): Promise<str
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
+  return response.json() as unknown as OpenAiResponse;
+}
+
+async function parseOpenAiResponse(response: any): Promise<any> {
   const mostRelevantData = await response.json() as OpenAiResponse;
   if (!mostRelevantData.choices || mostRelevantData.choices.length === 0) {
     throw new Error('No choices returned from OpenAI');
