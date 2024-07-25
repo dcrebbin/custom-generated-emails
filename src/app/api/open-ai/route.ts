@@ -8,8 +8,8 @@ interface SearchResult {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.SERVER_PASSWORD}`) {
+  const authHeader = req.headers.get("x-api-key");
+  if (authHeader !== `${process.env.SERVER_PASSWORD}`) {
     console.error("Unauthorized");
     return new Response("Unauthorized", {
       status: 401,
