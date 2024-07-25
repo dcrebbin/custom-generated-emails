@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { CUSTOM_EMAILS } from "~/app/constants/config";
 import { inngest } from "~/innjest/client";
 
@@ -20,7 +23,7 @@ export const notification = inngest.createFunction(
             const dayOfWeek = today.getDay();
             if (customEmail.schedule[dayOfWeek] === 1) {
                 await step.run("send-custom-email", async () => {
-                    await sendCustomEmail(customEmail.topic, customEmail.sendTo, customEmail.subject);
+                    await sendCustomEmail(customEmail.topic, customEmail.sendTo, customEmail.subject, step);
                 });
             }
         }
@@ -62,23 +65,30 @@ async function openAi(query: string) {
     return res;
 }
 
-async function sendCustomEmail(query: string, email: string, subject: string) {
+async function sendCustomEmail(query: string, email: string, subject: string, step: any) {
     console.log("Send Custom Email Starting");
-    const res = process.env.USE_OPEN_AI == "true" ? await openAi(query) : await perplexity(query);
-    const data = await res.text();
-    const emailSent = await fetch(`${process.env.SERVER_URL}/api/email`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "x-api-key": `${process.env.SERVER_PASSWORD}`,
-        },
-        body: JSON.stringify({
-            email: email,
-            subject: subject,
-            text: data,
-        }),
+    let data = "";
+
+    await step.run("ai-process-request", async () => {
+        const res = process.env.USE_OPEN_AI == "true" ? await openAi(query) : await perplexity(query);
+        data = await res.text();
     });
-    const emailSentData = await emailSent.text();
+    let emailSentData = null;
+    await step.run("send-email", async () => {
+        const emailSent = await fetch(`${process.env.SERVER_URL}/api/email`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-api-key": `${process.env.SERVER_PASSWORD}`,
+            },
+            body: JSON.stringify({
+                email: email,
+                subject: subject,
+                text: data,
+            }),
+        });
+        emailSentData = await emailSent.text();
+    });
     console.log("Send Custom Email Ending");
     console.log(emailSentData);
     return new Response(data, {
