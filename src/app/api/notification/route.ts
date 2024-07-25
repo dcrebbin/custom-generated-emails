@@ -1,3 +1,4 @@
+import { waitUntilSymbol } from "next/dist/server/web/spec-extension/fetch-event";
 import { type NextRequest } from "next/server";
 import { CUSTOM_EMAILS } from "~/app/constants/config";
 
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
         const today = new Date();
         const dayOfWeek = today.getDay();
         if (customEmail.schedule[dayOfWeek] === 1) {
-            void sendCustomEmail(customEmail.topic, customEmail.sendTo, customEmail.subject);
+            await sendCustomEmail(customEmail.topic, customEmail.sendTo, customEmail.subject);
         }
     }
     return new Response("OK", {
