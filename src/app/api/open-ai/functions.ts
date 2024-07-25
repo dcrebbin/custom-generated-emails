@@ -21,29 +21,22 @@ export const openAi = inngest.createFunction(
     console.log("Notification Starting");
 
     const { query } = event.data as { query: string };
-    const optimisedSearchQueryResponse = await step.run("optimise-query", async () => {
+    const optimisedSearchQuery = await step.run("optimise-query", async () => {
       return await openAiRequest(`Optimise this natural language query to show the best and latest results in a search engine. Only return the updated query. If the query contains more than 1 request then split it into multiple queries using semi-colons ;. Query: ${query}`);
     });
-    const optimisedSearchQuery = await step.run("parse-optimised-query", async () => {
-      return await parseOpenAiResponse(optimisedSearchQueryResponse);
-    });
+
     const splitQueries = optimisedSearchQuery.split(";");
     const results: string[] = [];
     for (const query of splitQueries) {
       const retrievedWebSearch = await step.run("search", async () => {
         return await search(query.replace(/^\s+|\s+$/g, ""));
       });
-      const parsedWebSearch = await step.run("parse-web-search", async () => {
-        return await parseSearchResponse(retrievedWebSearch);
-      });
+
       const openAiResponse = await step.run("open-ai-request", async () => {
-        return await openAiRequest(`Find the most relevent information todo with this query: ${query} and: ${PROMPT_RULES}. Using this data: ${JSON.stringify(parsedWebSearch)}. Only return the relevent information`);
-      });
-      const parsedOpenAiResponse = await step.run("parse-open-ai-response", async () => {
-        return await parseOpenAiResponse(openAiResponse);
+        return await openAiRequest(`Find the most relevent information todo with this query: ${query} and: ${PROMPT_RULES}. Using this data: ${JSON.stringify(retrievedWebSearch)}. Only return the relevent information`);
       });
 
-      results.push(parsedOpenAiResponse as string);
+      results.push(openAiResponse as string);
     }
     const finalData = await step.run("final-data", async () => {
       return await openAiRequest(`Convert this data into well formatted markdown that includes all elements (headers, bold, italic, links, lists, paragraphs, etc):
@@ -80,10 +73,6 @@ async function search(query: string): Promise<unknown> {
   if (!searchResponse.ok) {
     throw new Error(`HTTP error! status: ${searchResponse.status}`);
   }
-  return searchResponse;
-}
-
-async function parseSearchResponse(searchResponse: any): Promise<SearchResult[]> {
   const searchData = await searchResponse.json() as BingSearchResponse;
 
   if (!searchData.webPages?.value) {
@@ -133,10 +122,6 @@ async function openAiRequest(prompt: string, model = "gpt-4o-mini"): Promise<any
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
-  return response;
-}
-
-async function parseOpenAiResponse(response: any): Promise<any> {
   const mostRelevantData = await response.json() as OpenAiResponse;
   if (!mostRelevantData.choices || mostRelevantData.choices.length === 0) {
     throw new Error('No choices returned from OpenAI');
@@ -150,6 +135,7 @@ async function parseOpenAiResponse(response: any): Promise<any> {
 
   return content;
 }
+
 
 interface OpenAiResponse {
   choices: {
