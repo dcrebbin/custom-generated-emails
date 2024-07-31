@@ -1,5 +1,4 @@
 import { type NextRequest } from "next/server";
-import { inngest } from "~/innjest/client";
 
 export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
@@ -11,13 +10,16 @@ export async function GET(request: NextRequest) {
         });
     }
 
+    const headers = new Headers();
+    headers.set("x-api-key", process.env.SERVER_API_KEY ?? "");
+
     console.log("Authorized");
-    await inngest.send({
-        name: "notification/send-custom-emails",
+    void fetch(`${process.env.SERVER_URL}/api/notification`, {
+        method: "POST",
+        headers: headers,
     });
 
     return new Response("OK", {
         status: 200,
-
     });
 }
