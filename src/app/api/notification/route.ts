@@ -13,13 +13,21 @@ export async function GET(request: NextRequest) {
     const headers = new Headers();
     headers.set("x-api-key", process.env.SERVER_API_KEY ?? "");
 
-    console.log("Authorized");
-    void fetch(`${process.env.SERVER_URL}/api/notification`, {
-        method: "POST",
-        headers: headers,
-    });
+    try {
+        const res = await fetch(`${process.env.SERVER_URL}/api/notification`, {
+            method: "POST",
+            headers: headers,
+        });
 
-    return new Response("OK", {
-        status: 200,
-    });
+        const data: unknown = await res.text();
+
+        return new Response(JSON.stringify(data), {
+            status: 200,
+        });
+    } catch (error) {
+        console.error(error);
+        return new Response('Internal Server Error', {
+            status: 500,
+        });
+    }
 }
